@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://portnado.localhost/schema/portnado.schema.json",
+  "title": "Portnado repository configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "project", "services"],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 200
+        }
+      }
+    },
+    "services": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "#/$defs/service"
+      },
+      "propertyNames": {
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+        "maxLength": 63
+      }
+    }
+  },
+  "$defs": {
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "route", "target"],
+      "properties": {
+        "protocol": {
+          "enum": ["http", "tcp"]
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "route": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["host"],
+          "properties": {
+            "host": {
+              "type": "string",
+              "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\\.localhost$",
+              "maxLength": 253
+            },
+            "preferredPort": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            }
+          }
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["discovery"],
+          "properties": {
+            "discovery": {
+              "enum": ["auto", "docker-compose", "native", "manual"]
+            },
+            "preferredPort": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "service": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "containerPort": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,3 @@
+# Portnado managed PF anchor.
+# Redirect loopback HTTP traffic from port 80 to the unprivileged proxy.
+rdr pass on lo0 inet proto tcp from any to 127.0.0.1 port 80 -> 127.0.0.1 port {{PORT}}

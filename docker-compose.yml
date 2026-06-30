@@ -1,0 +1,49 @@
+services:
+  phase1-checks:
+    build:
+      context: .
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:ro
+  phase2-go-checks:
+    build:
+      context: .
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:ro
+    command: ["check-phase2"]
+  phase3-go-checks:
+    build:
+      context: .
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:ro
+    command: ["check-phase3"]
+  phase4-go-checks:
+    build:
+      context: .
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:ro
+    command: ["check-phase4"]
+  phase5-go-checks:
+    build:
+      context: .
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:ro
+    command: ["check-phase5"]
+  phase6-release-checks:
+    build:
+      context: .
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:ro
+    command: ["check-phase6"]
+  phase7-hardening-checks:
+    build:
+      context: .
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:ro
+    command: ["check-phase7"]

@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    name: Go and docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Dockerized Phase 7 checks
+        run: docker compose run --rm phase7-hardening-checks
+
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  swift:
+    name: Swift
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Swift package
+        run: swift build --package-path apps/Portnado
+      - name: Test Swift package
+        run: swift test --package-path apps/Portnado

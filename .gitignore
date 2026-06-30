@@ -1,0 +1,24 @@
+# Go
+/portnado
+/portnado-daemon
+/bin/
+/build/
+/dist/
+/coverage.out
+
+# Swift
+/.build/
+/apps/Portnado/.build/
+/apps/Portnado/.swiftpm/
+
+# macOS
+.DS_Store
+
+# Logs and local state
+*.log
+*.sqlite
+*.db
+
+# Editor state
+.idea/
+.vscode/
