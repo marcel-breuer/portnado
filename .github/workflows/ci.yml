@@ -14,7 +14,7 @@ jobs:
     name: Go and docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run Dockerized Phase 7 checks
         run: docker compose run --rm phase7-hardening-checks
 
@@ -25,7 +25,7 @@ jobs:
     name: Swift
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build Swift package
         run: swift build --package-path apps/Portnado
       - name: Test Swift package

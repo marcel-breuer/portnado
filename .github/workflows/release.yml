@@ -18,7 +18,7 @@ jobs:
     name: Build Darwin arm64 archive
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Resolve version
         id: version
