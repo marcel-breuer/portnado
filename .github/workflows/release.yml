@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without leading v"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  darwin-arm64:
+    name: Build Darwin arm64 archive
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ inputs.version }}"
+          else
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Run Swift tests
+        run: swift test --package-path apps/Portnado
+
+      - name: Run Go tests
+        run: go test ./...
+
+      - name: Build release archive
+        env:
+          PORTNADO_VERSION: ${{ steps.version.outputs.version }}
+          PORTNADO_CODESIGN: adhoc
+        run: scripts/package-darwin-arm64.sh
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Portnado-v${{ steps.version.outputs.version }}-darwin-arm64
+          path: |
+            dist/Portnado-v${{ steps.version.outputs.version }}-darwin-arm64.zip
+            dist/Portnado-v${{ steps.version.outputs.version }}-darwin-arm64.zip.sha256
+
+      - name: Publish GitHub release assets
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Portnado-v${{ steps.version.outputs.version }}-darwin-arm64.zip
+            dist/Portnado-v${{ steps.version.outputs.version }}-darwin-arm64.zip.sha256

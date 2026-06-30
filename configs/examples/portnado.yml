@@ -1,0 +1,23 @@
+version: 1
+
+project:
+  name: webguard
+
+services:
+  app:
+    protocol: http
+    route:
+      host: app.webguard.localhost
+    target:
+      discovery: auto
+      preferredPort: 5173
+
+  database:
+    protocol: tcp
+    route:
+      host: db.webguard.localhost
+      preferredPort: 15432
+    target:
+      discovery: docker-compose
+      service: database
+      containerPort: 5432
