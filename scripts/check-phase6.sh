@@ -21,6 +21,9 @@ grep -q 'zap trash' packaging/homebrew/Casks/portnado.rb
 grep -q 'unidentified-developer' packaging/homebrew/Casks/portnado.rb
 grep -q 'malicious software' packaging/homebrew/Casks/portnado.rb
 grep -q 'dev.portnado.daemon' packaging/homebrew/Casks/portnado.rb
+grep -q 'marcel-breuer/homebrew-tap' packaging/homebrew/publish-tap.sh
+grep -q 'marcel-breuer/tap/portnado' README.md
+grep -q 'marcel-breuer/tap/portnado' docs/installation.md
 grep -q 'HOMEBREW_TAP_TOKEN' .github/workflows/release.yml
 grep -q 'publish-tap.sh' .github/workflows/release.yml
 

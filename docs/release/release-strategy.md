@@ -74,16 +74,16 @@ It installs `Portnado.app`, exposes the embedded CLI as `portnado`, declares App
 
 ## Tap Automation
 
-The tap repository is `marcel-breuer/homebrew-portnado`, which Homebrew exposes
-as `marcel-breuer/portnado`. Users install with:
+The tap repository is `marcel-breuer/homebrew-tap`, which Homebrew exposes
+as `marcel-breuer/tap`. Users install with:
 
 ```bash
-brew install --cask marcel-breuer/portnado/portnado
+brew install --cask marcel-breuer/tap/portnado
 ```
 
 Initial bootstrapping must not require credentials. Tag releases publish to the
 tap only when `HOMEBREW_TAP_TOKEN` is configured with contents write access to
-`marcel-breuer/homebrew-portnado`.
+`marcel-breuer/homebrew-tap`.
 
 Use:
 
