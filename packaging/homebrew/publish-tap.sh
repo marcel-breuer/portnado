@@ -33,7 +33,7 @@ fi
 
 root="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
 source_cask="$root/packaging/homebrew/Casks/portnado.rb"
-tap_repo="${HOMEBREW_TAP_REPO:-marcel-breuer/homebrew-portnado}"
+tap_repo="${HOMEBREW_TAP_REPO:-marcel-breuer/homebrew-tap}"
 tap_branch="${HOMEBREW_TAP_BRANCH:-main}"
 tap_dir="${HOMEBREW_TAP_DIR:-}"
 push="${HOMEBREW_TAP_PUSH:-1}"

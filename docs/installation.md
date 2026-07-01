@@ -25,11 +25,11 @@ After a GitHub release is published and the tap is updated, install Portnado
 with Homebrew:
 
 ```bash
-brew install --cask marcel-breuer/portnado/portnado
+brew install --cask marcel-breuer/tap/portnado
 ```
 
-The tap repository is `marcel-breuer/homebrew-portnado`, which Homebrew exposes
-as the tap name `marcel-breuer/portnado`. The Cask installs `Portnado.app` into
+The tap repository is `marcel-breuer/homebrew-tap`, which Homebrew exposes
+as the tap name `marcel-breuer/tap`. The Cask installs `Portnado.app` into
 `/Applications` and exposes the embedded CLI as `portnado`.
 
 Portnado is not Developer ID signed or notarized. macOS may show an

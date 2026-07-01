@@ -12,7 +12,7 @@ Tagline: Stable local routes for changing development ports.
 - Apple Silicon only.
 - `arm64` only.
 - macOS 14 or newer unless implementation later proves a higher minimum is required.
-- Distribution through the custom Homebrew tap `marcel-breuer/homebrew-portnado`.
+- Distribution through the custom Homebrew tap repository `marcel-breuer/homebrew-tap`.
 
 ## Problem
 

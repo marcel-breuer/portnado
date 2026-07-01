@@ -18,7 +18,7 @@
 ## Still Not Verified
 
 - Clean Apple Silicon Mac install.
-- Installation from the external `marcel-breuer/homebrew-portnado` tap.
+- Installation from the external `marcel-breuer/tap` tap.
 - Homebrew `uninstall` and `zap` against a real installed Cask.
 - PF apply/rollback with administrator approval.
 - Developer ID signing and notarization.

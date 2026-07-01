@@ -33,11 +33,11 @@ PORTNADO_VERSION=0.1.0 make package-darwin-arm64
 Install the release with Homebrew:
 
 ```bash
-brew install --cask marcel-breuer/portnado/portnado
+brew install --cask marcel-breuer/tap/portnado
 ```
 
-The tap repository is `marcel-breuer/homebrew-portnado`, exposed by Homebrew as
-`marcel-breuer/portnado`. The Cask lives at
+The tap repository is `marcel-breuer/homebrew-tap`, exposed by Homebrew as
+`marcel-breuer/tap`. The Cask lives at
 `packaging/homebrew/Casks/portnado.rb` in this repository and is published to
 the tap during tagged releases when `HOMEBREW_TAP_TOKEN` is configured.
 
