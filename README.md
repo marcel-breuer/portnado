@@ -30,20 +30,24 @@ Build a local archive:
 PORTNADO_VERSION=0.1.0 make package-darwin-arm64
 ```
 
-The custom Cask template lives at:
+Install the release with Homebrew:
 
-```text
-packaging/homebrew/Casks/portnado.rb
+```bash
+brew install --cask marcel-breuer/portnado/portnado
 ```
 
-The intended tap is `marcel-breuer/homebrew-portnado`.
+The tap repository is `marcel-breuer/homebrew-portnado`, exposed by Homebrew as
+`marcel-breuer/portnado`. The Cask lives at
+`packaging/homebrew/Casks/portnado.rb` in this repository and is published to
+the tap during tagged releases when `HOMEBREW_TAP_TOKEN` is configured.
 
 ## Gatekeeper
 
 Portnado currently ships without Developer ID notarization. macOS may report
-that the developer cannot be verified on first launch. Portnado does not include
-commands that disable Gatekeeper, remove quarantine automatically, or modify
-global macOS security policy.
+that the developer cannot be verified, or that Apple cannot check the app for
+malicious software, on first launch. Portnado does not include commands that
+disable Gatekeeper, remove quarantine automatically, or modify global macOS
+security policy.
 
 ## First Setup
 

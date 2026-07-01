@@ -41,8 +41,9 @@ On a version tag:
 10. Calculate SHA-256 checksum.
 11. Generate SBOM if practical.
 12. Publish GitHub release assets after approval.
-13. Generate or update custom Homebrew Cask.
+13. Generate or update the custom Homebrew Cask.
 14. Verify the local artifact with `scripts/verify-release-artifact.sh`.
+15. Publish the updated Cask to the Homebrew tap.
 
 The local packaging entry point is:
 
@@ -73,13 +74,22 @@ It installs `Portnado.app`, exposes the embedded CLI as `portnado`, declares App
 
 ## Tap Automation
 
-The intended tap is `marcel-breuer/homebrew-portnado`. Initial bootstrapping must not require credentials. Later automation should document required token permissions.
+The tap repository is `marcel-breuer/homebrew-portnado`, which Homebrew exposes
+as `marcel-breuer/portnado`. Users install with:
+
+```bash
+brew install --cask marcel-breuer/portnado/portnado
+```
+
+Initial bootstrapping must not require credentials. Tag releases publish to the
+tap only when `HOMEBREW_TAP_TOKEN` is configured with contents write access to
+`marcel-breuer/homebrew-portnado`.
 
 Use:
 
 ```bash
 packaging/homebrew/update-cask.sh 0.1.0 "$(cat dist/Portnado-v0.1.0-darwin-arm64.zip.sha256)"
+packaging/homebrew/publish-tap.sh 0.1.0 "$(cat dist/Portnado-v0.1.0-darwin-arm64.zip.sha256)"
 ```
 
-Publishing to the tap requires a repository token with contents write access to
-`marcel-breuer/homebrew-portnado`.
+Publishing to the tap must not require broader account permissions.

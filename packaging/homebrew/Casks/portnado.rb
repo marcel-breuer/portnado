@@ -24,7 +24,8 @@ cask "portnado" do
 
   caveats <<~EOS
     Portnado currently ships without Developer ID notarization. macOS may show
-    an unidentified-developer warning the first time you open the app.
+    an unidentified-developer warning and may say Apple cannot check it for
+    malicious software the first time you open the app.
 
     The CLI is available as:
       portnado
@@ -34,5 +35,9 @@ cask "portnado" do
 
     Zap removes Portnado user state and logs only. It does not delete
     repository .portnado.yml files.
+
+    Portnado does not disable Gatekeeper or remove quarantine automatically.
+    If macOS blocks the first launch, approve the app manually in Finder or
+    System Settings after verifying the release source.
   EOS
 end
