@@ -8,18 +8,13 @@ struct PortnadoApp: App {
 
     var body: some Scene {
         MenuBarExtra("Portnado", systemImage: model.systemImage) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Portnado")
-                    .font(.headline)
-                Text(model.statusText)
-                Text(model.detailText)
-                    .font(.caption)
-                    .textSelection(.enabled)
+            VStack(alignment: .leading, spacing: 12) {
+                BrandHeader(model: model)
+                StatusPanel(model: model)
                 Divider()
 
                 if !model.suggestions.isEmpty {
-                    Text("Suggested Routes")
-                        .font(.subheadline)
+                    SectionHeader(title: "Suggested Routes", systemImage: "sparkles")
                     ForEach(model.suggestions) { suggestion in
                         RouteSuggestionRow(suggestion: suggestion, model: model)
                     }
@@ -27,8 +22,7 @@ struct PortnadoApp: App {
                 }
 
                 if !model.routes.isEmpty {
-                    Text("Confirmed Routes")
-                        .font(.subheadline)
+                    SectionHeader(title: "Confirmed Routes", systemImage: "checkmark.seal")
                     ForEach(model.routes) { route in
                         ConfirmedRouteRow(route: route, model: model)
                     }
@@ -36,19 +30,25 @@ struct PortnadoApp: App {
                 }
 
                 Toggle("Show inactive routes", isOn: $model.showInactiveRoutes)
+                    .tint(BrandPalette.primary)
                 Toggle("Copy addresses with http://", isOn: $model.copyWithScheme)
+                    .tint(BrandPalette.primary)
                 Divider()
 
-                Button {
-                    model.refresh()
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-                .keyboardShortcut("r")
-                Button {
-                    NSApplication.shared.terminate(nil)
-                } label: {
-                    Label("Quit", systemImage: "power")
+                HStack(spacing: 8) {
+                    Button {
+                        model.refresh()
+                    } label: {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                    }
+                    .keyboardShortcut("r")
+                    .tint(BrandPalette.primary)
+
+                    Button {
+                        NSApplication.shared.terminate(nil)
+                    } label: {
+                        Label("Quit", systemImage: "power")
+                    }
                 }
             }
             .frame(minWidth: 330, alignment: .leading)
@@ -61,16 +61,118 @@ struct PortnadoApp: App {
     }
 }
 
+private enum BrandPalette {
+    static let primary = Color(hex: 0x9333EA)
+    static let primaryDeep = Color(hex: 0x7C3AED)
+    static let indigo = Color(hex: 0x6366F1)
+    static let purple100 = Color(hex: 0xF3E8FF)
+    static let slate500 = Color(hex: 0x64748B)
+    static let slate950 = Color(hex: 0x020617)
+    static let success = Color(hex: 0x10B981)
+    static let warning = Color(hex: 0xF59E0B)
+}
+
+private extension Color {
+    init(hex: UInt32, opacity: Double = 1) {
+        let red = Double((hex >> 16) & 0xff) / 255
+        let green = Double((hex >> 8) & 0xff) / 255
+        let blue = Double(hex & 0xff) / 255
+        self.init(.sRGB, red: red, green: green, blue: blue, opacity: opacity)
+    }
+}
+
+private struct BrandHeader: View {
+    @ObservedObject var model: MenuBarModel
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [BrandPalette.primaryDeep, BrandPalette.indigo],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                Image(systemName: model.systemImage)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 34, height: 34)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Portnado")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Text("Local routing control")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+private struct StatusPanel: View {
+    @ObservedObject var model: MenuBarModel
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(model.reachable ? BrandPalette.success : BrandPalette.warning)
+                    .frame(width: 8, height: 8)
+                Text(model.statusText)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+            }
+
+            Text(model.detailText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(statusBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(BrandPalette.primary.opacity(0.18), lineWidth: 1)
+            )
+        )
+    }
+
+    private var statusBackground: Color {
+        colorScheme == .dark ? BrandPalette.primaryDeep.opacity(0.18) : BrandPalette.purple100.opacity(0.65)
+    }
+}
+
+private struct SectionHeader: View {
+    let title: String
+    let systemImage: String
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(BrandPalette.primaryDeep)
+    }
+}
+
 private struct RouteSuggestionRow: View {
     let suggestion: ServiceSummary
     @ObservedObject var model: MenuBarModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("\(suggestion.projectName) / \(suggestion.serviceName)")
-                .font(.caption)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary)
             Text(model.displayAddress(host: suggestion.routeHost, port: suggestion.frontendPort))
                 .font(.caption2)
+                .foregroundStyle(.secondary)
                 .textSelection(.enabled)
             HStack {
                 Button {
@@ -78,6 +180,7 @@ private struct RouteSuggestionRow: View {
                 } label: {
                     Label("Approve", systemImage: "checkmark.circle")
                 }
+                .tint(BrandPalette.primary)
                 Button {
                     model.copyAddress(host: suggestion.routeHost, port: suggestion.frontendPort)
                 } label: {
@@ -85,6 +188,7 @@ private struct RouteSuggestionRow: View {
                 }
             }
         }
+        .routeSurface(accent: BrandPalette.primary)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Suggested route \(suggestion.routeHost)")
     }
@@ -95,11 +199,13 @@ private struct ConfirmedRouteRow: View {
     @ObservedObject var model: MenuBarModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("\(route.projectName ?? "Project") / \(route.serviceName ?? "Service")")
-                .font(.caption)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary)
             Text(model.displayAddress(host: route.routeHost, port: route.frontendPort))
                 .font(.caption2)
+                .foregroundStyle(.secondary)
                 .textSelection(.enabled)
             HStack {
                 Button {
@@ -107,6 +213,7 @@ private struct ConfirmedRouteRow: View {
                 } label: {
                     Label(route.state == "active" ? "Disable" : "Enable", systemImage: route.state == "active" ? "pause.circle" : "play.circle")
                 }
+                .tint(route.state == "active" ? BrandPalette.warning : BrandPalette.primary)
                 Button {
                     model.copyAddress(host: route.routeHost, port: route.frontendPort)
                 } label: {
@@ -114,8 +221,43 @@ private struct ConfirmedRouteRow: View {
                 }
             }
         }
+        .routeSurface(accent: route.state == "active" ? BrandPalette.success : BrandPalette.slate500)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Confirmed route \(route.routeHost)")
+    }
+}
+
+private extension View {
+    func routeSurface(accent: Color) -> some View {
+        modifier(RouteSurfaceModifier(accent: accent))
+    }
+}
+
+private struct RouteSurfaceModifier: ViewModifier {
+    let accent: Color
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                HStack(spacing: 0) {
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(accent)
+                        .frame(width: 3)
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(surfaceColor)
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(BrandPalette.primary.opacity(colorScheme == .dark ? 0.22 : 0.10), lineWidth: 1)
+            )
+    }
+
+    private var surfaceColor: Color {
+        colorScheme == .dark ? BrandPalette.slate950.opacity(0.55) : Color.white.opacity(0.72)
     }
 }
 
