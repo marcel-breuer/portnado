@@ -16,5 +16,3 @@
   resource profiling remains a release-candidate follow-up.
 - The aggregate Go coverage target is not yet at 80%; the current pass measured
   62.8%.
-- Very long HOME paths can exceed macOS Unix socket path limits for the control
-  socket; normal user home paths are shorter, but this needs clearer diagnostics.

@@ -47,9 +47,12 @@ global macOS security policy.
 
 ## First Setup
 
-Start the daemon, scan the current repository, and approve routes:
+Initialize optional repository config, start the daemon, scan the current
+repository, and approve routes:
 
 ```bash
+portnado init --dry-run
+portnado init --project my-project --service app --target-port 5173
 portnado-daemon
 portnado scan --root "$PWD"
 portnado list
@@ -73,13 +76,14 @@ portnado setup --launch-at-login --daemon-path /Applications/Portnado.app/Conten
 ```bash
 go run ./cmd/portnado --version
 go run ./cmd/portnado status
+go run ./cmd/portnado init --dry-run
 go run ./cmd/portnado scan
 go run ./cmd/portnado list
 go run ./cmd/portnado doctor
 go run ./cmd/portnado setup --dry-run
 go run ./cmd/portnado uninstall --dry-run
 go run ./cmd/portnado route approve <suggestion-id>
-go run ./cmd/portnado route list
+go run ./cmd/portnado route list --json
 go run ./cmd/portnado route disable <route-id>
 go run ./cmd/portnado route enable <route-id>
 go run ./cmd/portnado config validate .portnado.yml
@@ -96,14 +100,17 @@ open browsers automatically.
 
 ## Runtime Compatibility
 
-Docker Compose discovery reads Docker-compatible CLI output and detects published
-loopback ports. Native runtime discovery inspects listening local processes and
-classifies common development runtimes including Node.js, PHP, Python, Go, and
-Java.
+Docker Compose discovery reads Docker-compatible CLI output and detects
+published loopback ports. Native runtime discovery inspects listening local
+processes and classifies common development runtimes including Node.js, PHP,
+Python, Go, and Java. Unknown or custom runtimes can still be routed by adding a
+manual service target in `.portnado.yml`.
 
 ## Repository Configuration
 
-Projects may add `.portnado.yml`:
+Projects may generate `.portnado.yml` with `portnado init`. Existing config is
+never overwritten. Manual targets can route services that automatic discovery
+cannot classify:
 
 ```yaml
 version: 1
@@ -115,7 +122,7 @@ services:
     route:
       host: app.webguard.localhost
     target:
-      discovery: auto
+      discovery: manual
       preferredPort: 5173
 ```
 
@@ -187,23 +194,13 @@ Full available local verification:
 make verify
 ```
 
-## Project Status
-
-- Phase 1: complete.
-- Phase 2: complete.
-- Phase 3: complete.
-- Phase 4: complete.
-- Phase 5: complete.
-- Phase 6: complete.
-- Phase 7: complete.
-- Current focus: release-candidate remediation and verification.
-
 ## Roadmap
 
-Next work focuses on resolving remaining release-candidate limitations:
-clean-machine installation, Cask install verification, PF apply/rollback,
-notarization decisions, broader UI automation, sustained resource profiling,
-and raising aggregate Go coverage toward the target.
+Remaining release work is external verification: clean-machine installation,
+installation from the public Homebrew tap, Developer ID signing/notarization if
+a certificate becomes available, LaunchAgent behavior across a real login
+session, PF apply/rollback with administrator approval, and sustained menu bar
+resource profiling.
 
 ## Contributing
 

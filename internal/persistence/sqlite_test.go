@@ -188,6 +188,99 @@ func TestApproveSuggestionRejectsRemoteBackend(t *testing.T) {
 	}
 }
 
+func TestSaveScanResultMarksMissingActiveRouteStale(t *testing.T) {
+	ctx := context.Background()
+	store, err := OpenPath(ctx, ":memory:")
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer store.Close()
+
+	fixture := saveRouteFixture(t, ctx, store, "127.0.0.1")
+	route, err := store.ApproveSuggestion(ctx, fixture.suggestionID)
+	if err != nil {
+		t.Fatalf("approve suggestion: %v", err)
+	}
+	now := time.Unix(1, 0).UTC()
+	project := domain.Project{ID: "project_webguard", Name: "webguard", Source: "test", CreatedAt: now, UpdatedAt: now}
+	service := domain.Service{ID: "service_app", ProjectID: project.ID, Name: "app", Protocol: domain.ProtocolHTTP, Source: "test", CreatedAt: now, UpdatedAt: now}
+	if err := store.SaveScanResult(ctx, domain.ScanResult{
+		Run:      domain.ScanRun{ID: "scan_missing", StartedAt: now, FinishedAt: now, Status: "completed"},
+		Projects: []domain.Project{project},
+		Services: []domain.Service{service},
+	}); err != nil {
+		t.Fatalf("save missing scan: %v", err)
+	}
+	stale, err := store.GetRoute(ctx, route.ID)
+	if err != nil {
+		t.Fatalf("get route: %v", err)
+	}
+	if stale.State != domain.RouteStateStale {
+		t.Fatalf("state = %q, want stale", stale.State)
+	}
+}
+
+func TestSaveScanResultReactivatesObservedStaleRoute(t *testing.T) {
+	ctx := context.Background()
+	store, err := OpenPath(ctx, ":memory:")
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer store.Close()
+
+	fixture := saveRouteFixture(t, ctx, store, "127.0.0.1")
+	route, err := store.ApproveSuggestion(ctx, fixture.suggestionID)
+	if err != nil {
+		t.Fatalf("approve suggestion: %v", err)
+	}
+	if _, err := store.db.ExecContext(ctx, "UPDATE confirmed_routes SET state = ? WHERE id = ?", domain.RouteStateStale, route.ID); err != nil {
+		t.Fatalf("set route stale: %v", err)
+	}
+	now := time.Unix(2, 0).UTC()
+	project := domain.Project{ID: "project_webguard", Name: "webguard", Source: "test", CreatedAt: now, UpdatedAt: now}
+	service := domain.Service{ID: "service_app", ProjectID: project.ID, Name: "app", Protocol: domain.ProtocolHTTP, Source: "test", CreatedAt: now, UpdatedAt: now}
+	observation := domain.Observation{
+		ID:          "observation_app_recovered",
+		Project:     project,
+		Service:     service,
+		Runtime:     "node",
+		Protocol:    domain.ProtocolHTTP,
+		BackendHost: "127.0.0.1",
+		BackendPort: 5174,
+		Confidence:  domain.ConfidenceHigh,
+		Evidence:    []domain.Evidence{{Source: "test", Summary: "fixture"}},
+		CreatedAt:   now,
+	}
+	suggestion := domain.RouteSuggestion{
+		ID:            "suggestion_app_recovered",
+		ServiceID:     service.ID,
+		ObservationID: observation.ID,
+		RouteHost:     "app.webguard.localhost",
+		BackendHost:   "127.0.0.1",
+		BackendPort:   5174,
+		State:         domain.RouteStateAwaitingApproval,
+		Reason:        "test",
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	}
+	if err := store.SaveScanResult(ctx, domain.ScanResult{
+		Run:          domain.ScanRun{ID: "scan_recovered", StartedAt: now, FinishedAt: now, Status: "completed"},
+		Projects:     []domain.Project{project},
+		Services:     []domain.Service{service},
+		Observations: []domain.Observation{observation},
+		Suggestions:  []domain.RouteSuggestion{suggestion},
+	}); err != nil {
+		t.Fatalf("save recovered scan: %v", err)
+	}
+	active, err := store.GetRoute(ctx, route.ID)
+	if err != nil {
+		t.Fatalf("get route: %v", err)
+	}
+	if active.State != domain.RouteStateActive || active.BackendPort != 5174 {
+		t.Fatalf("route = %+v", active)
+	}
+}
+
 type routeFixture struct {
 	suggestionID string
 }

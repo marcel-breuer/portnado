@@ -28,7 +28,7 @@ Status values:
 | FR-013 | Classify Node.js, PHP, Python, Go, and Java processes. | 3 | verified | Runtime classifier covers requested families with unit tests |
 | FR-014 | Associate detected services with project roots. | 3 | implemented | Native detector uses cwd and Git root when available |
 | FR-015 | Include evidence and confidence for automatic associations. | 3 | implemented | Observations include evidence and confidence |
-| FR-016 | Unknown runtimes remain routable after manual confirmation. | 3 | planned | Domain model |
+| FR-016 | Unknown runtimes remain routable after manual confirmation. | 3 | verified | Manual `.portnado.yml` targets create route suggestions with loopback backend validation |
 | FR-017 | Discovery does not modify project files or processes. | 3 | designed | Threat model |
 
 ## Configuration
@@ -39,7 +39,7 @@ Status values:
 | FR-021 | Local overrides remain outside the repository. | 3 | implemented | Local override schema and merge helper |
 | FR-022 | Configuration precedence is deterministic and documented. | 3 | implemented | Effective service merge helper follows ADR 0006 subset |
 | FR-023 | Configuration validation produces actionable errors. | 3 | implemented | Parser returns field-specific errors |
-| FR-024 | `portnado init` proposes config without overwriting existing files. | 3 | planned | PRD |
+| FR-024 | `portnado init` proposes config without overwriting existing files. | 3 | verified | `portnado init --dry-run` renders config and write mode refuses existing `.portnado.yml`; CLI and config tests cover behavior |
 
 ## HTTP Routing
 
@@ -70,10 +70,10 @@ Status values:
 | ID | Requirement | Phase | Status | Evidence |
 | --- | --- | --- | --- | --- |
 | FR-050 | Persist projects, services, routes, and observations in SQLite. | 3 | verified | SQLite migrations, scan persistence, migration reopen, and route recovery tests |
-| FR-051 | Routes remain configured when backend disappears. | 4 | designed | PRD |
-| FR-052 | Stale routes are marked but not deleted automatically. | 4 | designed | Domain model |
-| FR-053 | Daemon supports graceful shutdown. | 2 | planned | Component boundaries |
-| FR-054 | Only one daemon instance runs per user. | 2 | planned | Threat model |
+| FR-051 | Routes remain configured when backend disappears. | 4 | verified | Confirmed routes remain persisted during scan reconciliation |
+| FR-052 | Stale routes are marked but not deleted automatically. | 4 | verified | Store tests cover active route transition to `stale` and reactivation when observed again |
+| FR-053 | Daemon supports graceful shutdown. | 2 | verified | Daemon closes listener on context cancellation and server test covers stop behavior |
+| FR-054 | Only one daemon instance runs per user. | 2 | verified | Daemon rejects an already-active Unix socket before listening |
 | FR-055 | Launch at login is configurable. | 5 | implemented | `setup --launch-at-login --yes` writes a user LaunchAgent plist; real login-session behavior remains unverified |
 | FR-056 | Portnado does not restore development applications after login. | 5 | designed | PRD |
 
@@ -85,7 +85,7 @@ Status values:
 | FR-061 | Menu bar app supports route approval and rejection. | 5 | implemented | Menu bar can approve suggested routes and enable or disable confirmed routes |
 | FR-062 | Menu bar app allows route addresses to be copied. | 5 | implemented | Menu bar copy actions write route addresses to the pasteboard |
 | FR-063 | Application does not open browsers automatically. | 5 | designed | PRD |
-| FR-064 | CLI provides human-readable and structured output. | 2+ | implemented | `portnado status` supports text and `--json`; broader commands remain planned |
+| FR-064 | CLI provides human-readable and structured output. | 2+ | verified | `status`, `scan`, `list`, `doctor`, `setup`, `uninstall`, and route list/actions support structured JSON where daemon-backed output is returned |
 | FR-065 | CLI uses stable exit codes. | 2 | implemented | CLI returns `0`, `1`, or `2` for current commands |
 
 ## Diagnostics and Cleanup

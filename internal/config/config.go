@@ -75,6 +75,13 @@ type EffectiveService struct {
 	Sources      map[string]string
 }
 
+type InitOptions struct {
+	ProjectName string
+	ServiceName string
+	Protocol    domain.Protocol
+	TargetPort  int
+}
+
 func LoadRepositoryFile(path string) (RepositoryConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -221,6 +228,54 @@ func EffectiveServices(repo RepositoryConfig, override LocalOverride) ([]Effecti
 		})
 	}
 	return services, nil
+}
+
+func NewRepositoryConfig(options InitOptions) (RepositoryConfig, error) {
+	projectName := NormalizeName(options.ProjectName)
+	if projectName == "" {
+		projectName = "project"
+	}
+	serviceName := NormalizeName(options.ServiceName)
+	if serviceName == "" {
+		serviceName = "app"
+	}
+	protocol := options.Protocol
+	if protocol == "" {
+		protocol = domain.ProtocolHTTP
+	}
+	cfg := RepositoryConfig{
+		Version: 1,
+		Project: ProjectConfig{
+			Name: projectName,
+		},
+		Services: map[string]ServiceConfig{
+			serviceName: {
+				Protocol: protocol,
+				Route: RouteConfig{
+					Host: fmt.Sprintf("%s.%s.localhost", serviceName, projectName),
+				},
+				Target: TargetConfig{
+					Discovery:     "auto",
+					PreferredPort: options.TargetPort,
+				},
+			},
+		},
+	}
+	if err := cfg.Validate(); err != nil {
+		return RepositoryConfig{}, err
+	}
+	return cfg, nil
+}
+
+func RenderRepository(cfg RepositoryConfig) ([]byte, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("encode repository config: %w", err)
+	}
+	return data, nil
 }
 
 func NormalizeName(value string) string {
