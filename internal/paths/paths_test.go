@@ -38,3 +38,12 @@ func TestPathsUseApplicationSupport(t *testing.T) {
 		t.Fatalf("override = %q, want %q", override, want)
 	}
 }
+
+func TestSocketPathRejectsTooLongHome(t *testing.T) {
+	home := filepath.Join(t.TempDir(), "this-home-path-is-intentionally-long-enough-to-exceed-the-darwin-unix-domain-socket-limit-for-portnado")
+	t.Setenv("HOME", home)
+
+	if _, err := SocketPath(); err == nil {
+		t.Fatal("expected long socket path error")
+	}
+}

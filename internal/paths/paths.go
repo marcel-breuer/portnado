@@ -7,6 +7,7 @@ import (
 )
 
 const appSupportPath = "Library/Application Support/Portnado"
+const maxDarwinUnixSocketPathLength = 104
 
 func AppSupportDir() (string, error) {
 	home, err := os.UserHomeDir()
@@ -29,7 +30,11 @@ func SocketPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(runDir, "portnado.sock"), nil
+	socketPath := filepath.Join(runDir, "portnado.sock")
+	if len(socketPath) > maxDarwinUnixSocketPathLength {
+		return "", fmt.Errorf("control socket path is %d bytes, exceeding the macOS limit of %d bytes; use a shorter HOME path", len(socketPath), maxDarwinUnixSocketPathLength)
+	}
+	return socketPath, nil
 }
 
 func DatabasePath() (string, error) {

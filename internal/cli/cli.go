@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -114,6 +115,8 @@ func (a *App) Run(ctx context.Context, args []string) int {
 		return a.runScan(ctx, args[1:])
 	case "list":
 		return a.runList(ctx, args[1:])
+	case "init":
+		return a.runInit(args[1:])
 	case "config":
 		return a.runConfig(args[1:])
 	case "route":
@@ -133,17 +136,23 @@ func (a *App) Run(ctx context.Context, args []string) int {
 
 func (a *App) runRoute(ctx context.Context, args []string) int {
 	if len(args) == 0 {
-		fmt.Fprintln(a.Err, "usage: portnado route list|approve|enable|disable <route-id>")
+		fmt.Fprintln(a.Err, "usage: portnado route list [--json] | approve|enable|disable [--json] <route-id>")
 		return 2
 	}
 	if args[0] == "list" {
-		return a.runRouteList(ctx)
+		return a.runRouteList(ctx, args[1:])
 	}
-	if len(args) < 2 {
-		fmt.Fprintln(a.Err, "usage: portnado route approve|enable|disable <route-id>")
+	flags := flag.NewFlagSet("route "+args[0], flag.ContinueOnError)
+	flags.SetOutput(a.Err)
+	jsonOutput := flags.Bool("json", false, "write machine-readable JSON")
+	if err := flags.Parse(args[1:]); err != nil {
 		return 2
 	}
-	action, id := args[0], args[1]
+	if flags.NArg() < 1 {
+		fmt.Fprintln(a.Err, "usage: portnado route approve|enable|disable [--json] <route-id>")
+		return 2
+	}
+	action, id := args[0], flags.Arg(0)
 	var route domain.ConfirmedRoute
 	var err error
 	switch action {
@@ -161,15 +170,27 @@ func (a *App) runRoute(ctx context.Context, args []string) int {
 		fmt.Fprintf(a.Err, "route %s failed: %s\n", action, sanitizeStatusError(err))
 		return 1
 	}
+	if *jsonOutput {
+		return writeJSON(a.Out, route)
+	}
 	fmt.Fprintf(a.Out, "Route %s: %s %s (%s)\n", action, route.ID, displayConfirmedRoute(route), route.State)
 	return 0
 }
 
-func (a *App) runRouteList(ctx context.Context) int {
+func (a *App) runRouteList(ctx context.Context, args []string) int {
+	flags := flag.NewFlagSet("route list", flag.ContinueOnError)
+	flags.SetOutput(a.Err)
+	jsonOutput := flags.Bool("json", false, "write machine-readable JSON")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
 	routes, err := a.Client.Routes(ctx)
 	if err != nil {
 		fmt.Fprintf(a.Err, "route list failed: %s\n", sanitizeStatusError(err))
 		return 1
+	}
+	if *jsonOutput {
+		return writeJSON(a.Out, routes)
 	}
 	fmt.Fprintln(a.Out, "Portnado confirmed routes")
 	if len(routes) == 0 {
@@ -179,6 +200,65 @@ func (a *App) runRouteList(ctx context.Context) int {
 	for _, route := range routes {
 		fmt.Fprintf(a.Out, "- %s %s/%s %s -> %s:%d [%s]\n", route.ID, route.ProjectName, route.ServiceName, displayConfirmedRoute(route), route.BackendHost, route.BackendPort, route.State)
 	}
+	return 0
+}
+
+func (a *App) runInit(args []string) int {
+	flags := flag.NewFlagSet("init", flag.ContinueOnError)
+	flags.SetOutput(a.Err)
+	root := flags.String("root", "", "repository root")
+	projectName := flags.String("project", "", "project name")
+	serviceName := flags.String("service", "app", "service name")
+	protocolText := flags.String("protocol", string(domain.ProtocolHTTP), "service protocol: http or tcp")
+	targetPort := flags.Int("target-port", 0, "preferred local backend port")
+	dryRun := flags.Bool("dry-run", false, "print generated config without writing")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+	targetRoot := *root
+	if targetRoot == "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Fprintf(a.Err, "init failed: resolve current directory: %s\n", err)
+			return 1
+		}
+		targetRoot = cwd
+	}
+	if *projectName == "" {
+		*projectName = filepath.Base(targetRoot)
+	}
+	cfg, err := config.NewRepositoryConfig(config.InitOptions{
+		ProjectName: *projectName,
+		ServiceName: *serviceName,
+		Protocol:    domain.Protocol(*protocolText),
+		TargetPort:  *targetPort,
+	})
+	if err != nil {
+		fmt.Fprintf(a.Err, "init failed: %s\n", err)
+		return 1
+	}
+	data, err := config.RenderRepository(cfg)
+	if err != nil {
+		fmt.Fprintf(a.Err, "init failed: %s\n", err)
+		return 1
+	}
+	if *dryRun {
+		_, _ = a.Out.Write(data)
+		return 0
+	}
+	path := filepath.Join(targetRoot, config.RepositoryFileName)
+	if _, err := os.Stat(path); err == nil {
+		fmt.Fprintf(a.Err, "init failed: %s already exists; refusing to overwrite\n", path)
+		return 1
+	} else if !os.IsNotExist(err) {
+		fmt.Fprintf(a.Err, "init failed: inspect %s: %s\n", path, err)
+		return 1
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		fmt.Fprintf(a.Err, "init failed: write %s: %s\n", path, err)
+		return 1
+	}
+	fmt.Fprintf(a.Out, "Created %s\n", path)
 	return 0
 }
 
@@ -471,16 +551,15 @@ Usage:
   portnado status [--json]
   portnado scan [--json] [--root PATH]
   portnado list [--json]
+  portnado init [--root PATH] [--project NAME] [--service NAME] [--protocol http|tcp] [--target-port PORT] [--dry-run]
   portnado config validate [path]
   portnado doctor [--json]
   portnado setup [--dry-run] [--yes] [--launch-at-login] [--portless-http] [--hosts-fallback]
   portnado uninstall [--dry-run] [--yes] [--delete-state]
-  portnado route list
-  portnado route approve <suggestion-id>
-  portnado route enable <route-id>
-  portnado route disable <route-id>
-
-Phase 5 implements setup previews, doctor diagnostics, uninstall planning, and menu bar route actions.
+  portnado route list [--json]
+  portnado route approve [--json] <suggestion-id>
+  portnado route enable [--json] <route-id>
+  portnado route disable [--json] <route-id>
 `)
 }
 

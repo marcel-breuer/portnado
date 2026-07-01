@@ -137,6 +137,44 @@ services:
 	}
 }
 
+func TestScanCreatesManualRepositorySuggestion(t *testing.T) {
+	ctx := context.Background()
+	t.Setenv("HOME", t.TempDir())
+	store, err := persistence.OpenPath(ctx, ":memory:")
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer store.Close()
+
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, ".portnado.yml"), `
+version: 1
+project:
+  name: webguard
+services:
+  unknown:
+    protocol: http
+    route:
+      host: unknown.webguard.localhost
+    target:
+      discovery: manual
+      preferredPort: 8123
+`)
+	appService := NewService(store, fakeDetector{})
+
+	result, err := appService.Scan(ctx, root)
+	if err != nil {
+		t.Fatalf("scan: %v", err)
+	}
+	if len(result.Suggestions) != 1 {
+		t.Fatalf("suggestions = %+v", result.Suggestions)
+	}
+	suggestion := result.Suggestions[0]
+	if suggestion.RouteHost != "unknown.webguard.localhost" || suggestion.BackendPort != 8123 {
+		t.Fatalf("suggestion = %+v", suggestion)
+	}
+}
+
 func writeFile(t *testing.T, path string, contents string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {

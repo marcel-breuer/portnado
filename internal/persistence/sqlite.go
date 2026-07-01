@@ -135,6 +135,9 @@ VALUES (?, ?, ?, ?, ?)`, run.ID, formatTime(run.StartedAt), formatTime(run.Finis
 			return err
 		}
 	}
+	if err := reconcileConfirmedRoutes(ctx, tx, result); err != nil {
+		return err
+	}
 
 	return tx.Commit()
 }
@@ -391,6 +394,60 @@ ON CONFLICT(id) DO UPDATE SET observation_id = excluded.observation_id, backend_
 		suggestion.ID, suggestion.ServiceID, suggestion.ObservationID, suggestion.RouteHost, suggestion.FrontendPort, suggestion.BackendHost, suggestion.BackendPort, suggestion.State, suggestion.Reason, formatTime(suggestion.CreatedAt), formatTime(suggestion.UpdatedAt))
 	if err != nil {
 		return fmt.Errorf("upsert suggestion %s: %w", suggestion.ID, err)
+	}
+	return nil
+}
+
+func reconcileConfirmedRoutes(ctx context.Context, tx *sql.Tx, result domain.ScanResult) error {
+	now := formatTime(time.Now().UTC())
+	currentRoutes := make(map[string]domain.RouteSuggestion)
+	for _, suggestion := range result.Suggestions {
+		routeID := domain.DeterministicID("route", suggestion.ServiceID, suggestion.RouteHost)
+		currentRoutes[routeID] = suggestion
+	}
+	for routeID, suggestion := range currentRoutes {
+		if _, err := tx.ExecContext(ctx, `
+UPDATE confirmed_routes
+SET backend_host = ?, backend_port = ?, last_observation_id = ?, state = CASE WHEN state = ? THEN ? ELSE state END, updated_at = ?
+WHERE id = ? AND state IN (?, ?)`,
+			suggestion.BackendHost, suggestion.BackendPort, suggestion.ObservationID,
+			domain.RouteStateStale, domain.RouteStateActive, now, routeID,
+			domain.RouteStateActive, domain.RouteStateStale); err != nil {
+			return fmt.Errorf("refresh confirmed route %s: %w", routeID, err)
+		}
+	}
+
+	for _, project := range result.Projects {
+		rows, err := tx.QueryContext(ctx, `
+SELECT cr.id
+FROM confirmed_routes cr
+JOIN services svc ON svc.id = cr.service_id
+WHERE svc.project_id = ? AND cr.state = ?`, project.ID, domain.RouteStateActive)
+		if err != nil {
+			return fmt.Errorf("select active routes for project %s: %w", project.ID, err)
+		}
+		var stale []string
+		for rows.Next() {
+			var routeID string
+			if err := rows.Scan(&routeID); err != nil {
+				_ = rows.Close()
+				return fmt.Errorf("scan active route for project %s: %w", project.ID, err)
+			}
+			if _, ok := currentRoutes[routeID]; !ok {
+				stale = append(stale, routeID)
+			}
+		}
+		if err := rows.Close(); err != nil {
+			return fmt.Errorf("close active route rows for project %s: %w", project.ID, err)
+		}
+		if err := rows.Err(); err != nil {
+			return fmt.Errorf("iterate active routes for project %s: %w", project.ID, err)
+		}
+		for _, routeID := range stale {
+			if _, err := tx.ExecContext(ctx, "UPDATE confirmed_routes SET state = ?, updated_at = ? WHERE id = ? AND state = ?", domain.RouteStateStale, now, routeID, domain.RouteStateActive); err != nil {
+				return fmt.Errorf("mark confirmed route %s stale: %w", routeID, err)
+			}
+		}
 	}
 	return nil
 }

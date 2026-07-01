@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/marcel-breuer/portnado/internal/config"
@@ -58,8 +59,10 @@ func (s *Service) Scan(ctx context.Context, root string) (domain.ScanResult, err
 		warnings = append(warnings, detectorWarnings...)
 	}
 	observations = applyRepositoryConfig(observations, repoConfig, hasRepoConfig, root)
+	observations = append(observations, manualRepositoryObservations(repoConfig, hasRepoConfig, root, observations)...)
 	suggestions := suggestionsForObservations(observations, repoConfig, hasRepoConfig, localOverride, hasLocalOverride)
 	projects, services := collectEntities(observations)
+	projects, services = mergeRepositoryEntities(projects, services, repoConfig, hasRepoConfig, root)
 	finishedAt := time.Now().UTC()
 	result := domain.ScanResult{
 		Run: domain.ScanRun{
@@ -81,6 +84,119 @@ func (s *Service) Scan(ctx context.Context, root string) (domain.ScanResult, err
 		return domain.ScanResult{}, err
 	}
 	return result, nil
+}
+
+func mergeRepositoryEntities(projects []domain.Project, services []domain.Service, repoConfig config.RepositoryConfig, hasRepoConfig bool, root string) ([]domain.Project, []domain.Service) {
+	if !hasRepoConfig {
+		return projects, services
+	}
+	now := time.Now().UTC()
+	projectID := domain.DeterministicID("project", "repository", root, repoConfig.Project.Name)
+	project := domain.Project{
+		ID:        projectID,
+		Name:      repoConfig.Project.Name,
+		RootPath:  root,
+		Source:    "repository",
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	projectByID := make(map[string]domain.Project)
+	for _, existing := range projects {
+		projectByID[existing.ID] = existing
+	}
+	projectByID[project.ID] = project
+	projects = projects[:0]
+	for _, existing := range projectByID {
+		projects = append(projects, existing)
+	}
+
+	serviceByID := make(map[string]domain.Service)
+	for _, existing := range services {
+		serviceByID[existing.ID] = existing
+	}
+	for name, repoService := range repoConfig.Services {
+		serviceID := domain.DeterministicID("service", projectID, name)
+		if existing, ok := serviceByID[serviceID]; ok {
+			existing.Protocol = repoService.Protocol
+			existing.Description = repoService.Description
+			existing.Source = mergeSource(existing.Source, "repository")
+			existing.UpdatedAt = now
+			serviceByID[serviceID] = existing
+			continue
+		}
+		serviceByID[serviceID] = domain.Service{
+			ID:          serviceID,
+			ProjectID:   projectID,
+			Name:        name,
+			Protocol:    repoService.Protocol,
+			Description: repoService.Description,
+			Source:      "repository",
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}
+	}
+	services = services[:0]
+	for _, existing := range serviceByID {
+		services = append(services, existing)
+	}
+	return projects, services
+}
+
+func manualRepositoryObservations(repoConfig config.RepositoryConfig, hasRepoConfig bool, root string, existing []domain.Observation) []domain.Observation {
+	if !hasRepoConfig {
+		return nil
+	}
+	now := time.Now().UTC()
+	projectID := domain.DeterministicID("project", "repository", root, repoConfig.Project.Name)
+	project := domain.Project{
+		ID:        projectID,
+		Name:      repoConfig.Project.Name,
+		RootPath:  root,
+		Source:    "repository",
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	var observations []domain.Observation
+	observedServices := make(map[string]bool)
+	for _, observation := range existing {
+		if observation.Project.ID == projectID {
+			observedServices[observation.Service.Name] = true
+		}
+	}
+	for name, repoService := range repoConfig.Services {
+		if repoService.Target.Discovery != "manual" || repoService.Target.PreferredPort == 0 {
+			continue
+		}
+		if observedServices[name] {
+			continue
+		}
+		service := domain.Service{
+			ID:          domain.DeterministicID("service", projectID, name),
+			ProjectID:   projectID,
+			Name:        name,
+			Protocol:    repoService.Protocol,
+			Description: repoService.Description,
+			Source:      "repository",
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}
+		observations = append(observations, domain.Observation{
+			ID:          domain.DeterministicID("observation", projectID, service.ID, "manual", fmt.Sprint(repoService.Target.PreferredPort)),
+			Project:     project,
+			Service:     service,
+			Runtime:     "manual",
+			Protocol:    repoService.Protocol,
+			BackendHost: "127.0.0.1",
+			BackendPort: repoService.Target.PreferredPort,
+			Evidence: []domain.Evidence{{
+				Source:  "repository",
+				Summary: fmt.Sprintf(".portnado.yml manually maps %s to 127.0.0.1:%d", name, repoService.Target.PreferredPort),
+			}},
+			Confidence: domain.ConfidenceHigh,
+			CreatedAt:  now,
+		})
+	}
+	return observations
 }
 
 func (s *Service) List(ctx context.Context) ([]domain.ServiceSummary, error) {
@@ -277,6 +393,11 @@ func mergeSource(existing, next string) string {
 	}
 	if existing == next {
 		return existing
+	}
+	for _, part := range strings.Split(existing, "+") {
+		if part == next {
+			return existing
+		}
 	}
 	return existing + "+" + next
 }

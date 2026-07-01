@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -200,6 +202,72 @@ func TestRouteListCommand(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "route_app") {
 		t.Fatalf("route list output = %q", out.String())
+	}
+}
+
+func TestRouteListCommandJSON(t *testing.T) {
+	var out bytes.Buffer
+	app := App{
+		Out: &out,
+		Err: &bytes.Buffer{},
+		Client: fakeStatusClient{routes: []domain.ConfirmedRoute{{
+			ID:        "route_app",
+			RouteHost: "app.webguard.localhost",
+			State:     domain.RouteStateActive,
+		}}},
+	}
+	code := app.Run(context.Background(), []string{"route", "list", "--json"})
+	if code != 0 {
+		t.Fatalf("exit code = %d, want 0", code)
+	}
+	if !strings.Contains(out.String(), `"id": "route_app"`) {
+		t.Fatalf("route list json output = %q", out.String())
+	}
+}
+
+func TestInitCommandCreatesRepositoryConfigWithoutOverwrite(t *testing.T) {
+	root := t.TempDir()
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+	app := App{Out: &out, Err: &errOut}
+
+	code := app.Run(context.Background(), []string{"init", "--root", root, "--project", "WebGuard", "--target-port", "5173"})
+	if code != 0 {
+		t.Fatalf("exit code = %d, err = %q", code, errOut.String())
+	}
+	path := filepath.Join(root, ".portnado.yml")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read generated config: %v", err)
+	}
+	if !strings.Contains(string(data), "app.webguard.localhost") {
+		t.Fatalf("generated config = %s", data)
+	}
+
+	errOut.Reset()
+	code = app.Run(context.Background(), []string{"init", "--root", root})
+	if code != 1 {
+		t.Fatalf("overwrite exit code = %d, want 1", code)
+	}
+	if !strings.Contains(errOut.String(), "refusing to overwrite") {
+		t.Fatalf("overwrite error = %q", errOut.String())
+	}
+}
+
+func TestInitCommandDryRunDoesNotWrite(t *testing.T) {
+	root := t.TempDir()
+	var out bytes.Buffer
+	app := App{Out: &out, Err: &bytes.Buffer{}}
+
+	code := app.Run(context.Background(), []string{"init", "--root", root, "--dry-run"})
+	if code != 0 {
+		t.Fatalf("exit code = %d, want 0", code)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".portnado.yml")); !os.IsNotExist(err) {
+		t.Fatalf("dry run should not write config, stat err = %v", err)
+	}
+	if !strings.Contains(out.String(), "localhost") {
+		t.Fatalf("dry-run output = %q", out.String())
 	}
 }
 

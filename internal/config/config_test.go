@@ -97,3 +97,25 @@ services:
 		t.Fatalf("route source = %q", services[0].Sources["route"])
 	}
 }
+
+func TestNewRepositoryConfigRendersValidDefault(t *testing.T) {
+	cfg, err := NewRepositoryConfig(InitOptions{ProjectName: "WebGuard", ServiceName: "App", TargetPort: 5173})
+	if err != nil {
+		t.Fatalf("new repository config: %v", err)
+	}
+	data, err := RenderRepository(cfg)
+	if err != nil {
+		t.Fatalf("render repository config: %v", err)
+	}
+	parsed, err := ParseRepository(data)
+	if err != nil {
+		t.Fatalf("parse rendered config: %v\n%s", err, data)
+	}
+	if parsed.Project.Name != "webguard" {
+		t.Fatalf("project name = %q", parsed.Project.Name)
+	}
+	service := parsed.Services["app"]
+	if service.Route.Host != "app.webguard.localhost" || service.Target.PreferredPort != 5173 {
+		t.Fatalf("service = %+v", service)
+	}
+}
