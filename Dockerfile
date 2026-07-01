@@ -2,7 +2,7 @@ FROM golang:1.25-alpine
 
 WORKDIR /workspace
 
-RUN apk add --no-cache make python3
+RUN apk add --no-cache git make python3
 
 COPY scripts/check-phase1.sh /usr/local/bin/check-phase1
 COPY scripts/check-phase2.sh /usr/local/bin/check-phase2

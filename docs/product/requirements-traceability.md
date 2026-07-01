@@ -13,7 +13,7 @@ Status values:
 | ID | Requirement | Phase | Status | Evidence |
 | --- | --- | --- | --- | --- |
 | FR-001 | MVP runs on Apple Silicon macOS only. | 1 | designed | PRD and architecture scope |
-| FR-002 | Product installs from a custom Homebrew Cask. | 6 | implemented | `packaging/homebrew/Casks/portnado.rb` installs the app and exposes the CLI |
+| FR-002 | Product installs from a custom Homebrew Cask. | 6 | implemented | `packaging/homebrew/Casks/portnado.rb` installs the app and exposes the CLI; `packaging/homebrew/publish-tap.sh` publishes the Cask to the tap |
 | FR-003 | Release contains a macOS app bundle with embedded CLI and daemon. | 6 | implemented | `scripts/package-darwin-arm64.sh` creates `Portnado.app` with embedded Go binaries |
 | FR-004 | Product operates without an Apple Developer Program certificate. | 6 | implemented | Release docs and Cask caveats describe unsigned/unnotarized status |
 | FR-005 | Product never bypasses Gatekeeper automatically. | 6 | implemented | Cask and docs avoid Gatekeeper-bypass commands |

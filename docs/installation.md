@@ -21,14 +21,22 @@ Portnado.app/Contents/Resources/bin/portnado-daemon
 
 ## Homebrew Cask
 
-The Cask template is:
+After a GitHub release is published and the tap is updated, install Portnado
+with Homebrew:
 
-```text
-packaging/homebrew/Casks/portnado.rb
+```bash
+brew install --cask marcel-breuer/portnado/portnado
 ```
 
-It installs `Portnado.app` into `/Applications` and exposes the embedded CLI as
-`portnado`.
+The tap repository is `marcel-breuer/homebrew-portnado`, which Homebrew exposes
+as the tap name `marcel-breuer/portnado`. The Cask installs `Portnado.app` into
+`/Applications` and exposes the embedded CLI as `portnado`.
+
+Portnado is not Developer ID signed or notarized. macOS may show an
+unidentified-developer warning or say Apple cannot check the app for malicious
+software on first launch. Portnado does not disable Gatekeeper or remove
+quarantine automatically; approve the app manually only after verifying the
+release source.
 
 ## Build Locally
 
