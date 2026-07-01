@@ -1,12 +1,14 @@
 package paths
 
 import (
+	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
 func TestPathsUseApplicationSupport(t *testing.T) {
-	home := t.TempDir()
+	home := testHome(t)
 	t.Setenv("HOME", home)
 
 	appSupport, err := AppSupportDir()
@@ -40,10 +42,27 @@ func TestPathsUseApplicationSupport(t *testing.T) {
 }
 
 func TestSocketPathRejectsTooLongHome(t *testing.T) {
-	home := filepath.Join(t.TempDir(), "this-home-path-is-intentionally-long-enough-to-exceed-the-darwin-unix-domain-socket-limit-for-portnado")
+	home := filepath.Join(testHome(t), "this-home-path-is-intentionally-long-enough-to-exceed-the-darwin-unix-domain-socket-limit-for-portnado")
 	t.Setenv("HOME", home)
 
 	if _, err := SocketPath(); err == nil {
 		t.Fatal("expected long socket path error")
 	}
+}
+
+func testHome(t *testing.T) string {
+	t.Helper()
+
+	if runtime.GOOS != "darwin" {
+		return t.TempDir()
+	}
+
+	home, err := os.MkdirTemp("/tmp", "portnado-home-")
+	if err != nil {
+		t.Fatalf("create short test home: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.RemoveAll(home)
+	})
+	return home
 }
