@@ -272,10 +272,16 @@ final class MenuBarModel: ObservableObject {
 
     private let reachability: DaemonReachability
     private let client: PortnadoIPCClient
+    private let daemonLauncher: PortnadoDaemonLauncher
 
-    init(reachability: DaemonReachability = DaemonReachability(), client: PortnadoIPCClient = PortnadoIPCClient()) {
+    init(
+        reachability: DaemonReachability = DaemonReachability(),
+        client: PortnadoIPCClient = PortnadoIPCClient(),
+        daemonLauncher: PortnadoDaemonLauncher? = nil
+    ) {
         self.reachability = reachability
         self.client = client
+        self.daemonLauncher = daemonLauncher ?? PortnadoDaemonLauncher(reachability: reachability)
         self.reachable = reachability.isReachable()
     }
 
@@ -294,6 +300,10 @@ final class MenuBarModel: ObservableObject {
     func refresh() {
         Task {
             do {
+                if !reachability.isReachable() {
+                    message = "Starting daemon..."
+                    try await daemonLauncher.ensureRunning()
+                }
                 let status = try client.status()
                 let suggestions = try client.suggestions()
                 let routes = try client.routes()

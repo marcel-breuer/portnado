@@ -26,7 +26,9 @@ app="$tmp/Portnado.app"
 test -x "$app/Contents/MacOS/Portnado"
 test -x "$app/Contents/Resources/bin/portnado"
 test -x "$app/Contents/Resources/bin/portnado-daemon"
+test -s "$app/Contents/Resources/Portnado.icns"
 plutil -lint "$app/Contents/Info.plist" >/dev/null
+plutil -extract CFBundleIconFile raw -o - "$app/Contents/Info.plist" | grep -q '^Portnado$'
 
 if find "$tmp" -name '._*' | grep -q .; then
   echo "archive contains AppleDouble metadata" >&2
