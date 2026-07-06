@@ -5,6 +5,7 @@ check-phase5
 
 test -s scripts/package-darwin-arm64.sh
 test -s packaging/app/Info.plist.in
+test -s packaging/app/Portnado.icns
 test -s packaging/homebrew/Casks/portnado.rb
 test -s packaging/homebrew/publish-tap.sh
 test -s packaging/homebrew/update-cask.sh
@@ -15,6 +16,8 @@ sh -n scripts/package-darwin-arm64.sh
 sh -n packaging/homebrew/publish-tap.sh
 sh -n packaging/homebrew/update-cask.sh
 
+grep -q 'CFBundleIconFile' packaging/app/Info.plist.in
+grep -q 'Portnado.icns' scripts/package-darwin-arm64.sh
 grep -q 'Portnado.app' packaging/homebrew/Casks/portnado.rb
 grep -q 'Contents/Resources/bin/portnado' packaging/homebrew/Casks/portnado.rb
 grep -q 'zap trash' packaging/homebrew/Casks/portnado.rb

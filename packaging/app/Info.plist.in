@@ -8,6 +8,8 @@
   <string>Portnado</string>
   <key>CFBundleIdentifier</key>
   <string>dev.portnado.app</string>
+  <key>CFBundleIconFile</key>
+  <string>Portnado</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>

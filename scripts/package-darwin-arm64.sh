@@ -34,6 +34,7 @@ if [ ! -x "$swift_binary" ]; then
   exit 1
 fi
 cp "$swift_binary" "$app_dir/Contents/MacOS/Portnado"
+cp "$root/packaging/app/Portnado.icns" "$app_dir/Contents/Resources/Portnado.icns"
 
 sed \
   -e "s/{{VERSION}}/$version/g" \
