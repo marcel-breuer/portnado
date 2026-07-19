@@ -9,28 +9,6 @@ stable `.localhost` names, and routes approved names back to loopback backends.
 No real product screenshot exists yet. Do not use mock screenshots in release
 materials.
 
-## Stop Chasing Local Ports
-
-Portnado gives the services in your current project stable local addresses, even
-when their development ports move around.
-
-```text
-app.webguard.localhost  ->  127.0.0.1:4173
-api.webguard.localhost  ->  127.0.0.1:8082
-```
-
-It discovers already-running Docker Compose services and native development
-processes, proposes readable `.localhost` names, and keeps confirmed routes
-pointing at the right loopback backend. Approve a route once, then use the same
-address while a service moves from one local port to another.
-
-Built for a focused local workflow:
-
-- See discovery, route approvals, and diagnostics from the menu bar or CLI.
-- Keep routing on `127.0.0.1` with no accounts, cloud service, or telemetry.
-- Leave starting, stopping, and supervising project processes to your existing
-  development tools.
-
 ## Supported Platform
 
 The MVP targets Apple Silicon Macs running macOS 14 or newer.
