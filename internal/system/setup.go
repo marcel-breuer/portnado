@@ -151,9 +151,7 @@ func ApplyUninstall(deleteState bool, apply bool) (Plan, error) {
 	for i := range plan.Changes {
 		change := &plan.Changes[i]
 		if change.Privileged {
-			if os.Geteuid() != 0 {
-				continue
-			}
+			// Privileged changes are intentionally preview-only in this phase.
 			continue
 		}
 		switch change.ID {
