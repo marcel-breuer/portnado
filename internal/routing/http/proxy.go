@@ -43,10 +43,6 @@ func NewProxy(address string) *Proxy {
 	return proxy
 }
 
-func (p *Proxy) Address() string {
-	return p.address
-}
-
 func (p *Proxy) UpdateRoutes(routes []domain.ConfirmedRoute) {
 	next := make(map[string]domain.ConfirmedRoute)
 	for _, route := range routes {

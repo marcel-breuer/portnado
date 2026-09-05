@@ -14,26 +14,19 @@ type Manager struct {
 	httpProxy  *httprouting.Proxy
 	tcpForward *tcprouting.Forwarder
 	once       sync.Once
-	errCh      chan error
 }
 
 func NewManager(httpAddress string) *Manager {
 	return &Manager{
 		httpProxy:  httprouting.NewProxy(httpAddress),
 		tcpForward: tcprouting.NewForwarder(),
-		errCh:      make(chan error, 1),
 	}
 }
 
 func (m *Manager) Start(ctx context.Context) {
 	m.once.Do(func() {
 		go func() {
-			if err := m.httpProxy.ListenAndServe(ctx); err != nil {
-				select {
-				case m.errCh <- err:
-				default:
-				}
-			}
+			_ = m.httpProxy.ListenAndServe(ctx)
 		}()
 		go func() {
 			<-ctx.Done()
@@ -48,8 +41,4 @@ func (m *Manager) Reload(ctx context.Context, routes []domain.ConfirmedRoute) er
 		return fmt.Errorf("reload tcp routes: %w", err)
 	}
 	return nil
-}
-
-func (m *Manager) Errors() <-chan error {
-	return m.errCh
 }

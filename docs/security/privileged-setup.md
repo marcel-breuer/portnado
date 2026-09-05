@@ -34,8 +34,9 @@ Phase 5 implements dry-run planning for the managed PF redirect. Applying the PF
 ## Managed Files
 
 - User LaunchAgent: `~/Library/LaunchAgents/dev.portnado.daemon.plist`.
-- Managed PF anchor preview: `/etc/pf.anchors/dev.portnado`, based on
-  `packaging/pf/dev.portnado.anchor.in`.
+- Managed PF anchor preview: `/etc/pf.anchors/dev.portnado`, based on the
+  template embedded by `internal/system/pf.go` from
+  `internal/system/dev.portnado.anchor.in`.
 - Optional hosts fallback preview: `/etc/hosts`.
 
 Repository `.portnado.yml` files must never be removed by uninstall.
