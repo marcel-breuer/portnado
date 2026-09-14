@@ -3,9 +3,6 @@ name: Swift
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    paths:
-      - ".github/workflows/swift.yml"
-      - "apps/Portnado/**"
   workflow_dispatch:
 
 permissions:
@@ -16,8 +13,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect Swift scope
+    runs-on: ubuntu-latest
+    outputs:
+      swift: ${{ steps.scope.outputs.swift }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: scope
+        name: Check changed files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "swift=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+            '.github/workflows/swift.yml' \
+            'apps/Portnado/**'; then
+            echo "swift=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "swift=true" >> "$GITHUB_OUTPUT"
+          fi
+
   swift:
-    name: Swift
+    name: Swift checks
+    needs: changes
+    if: needs.changes.outputs.swift == 'true'
     runs-on: macos-15
     timeout-minutes: 10
     steps:
@@ -26,3 +54,24 @@ jobs:
         run: swift build --package-path apps/Portnado
       - name: Test Swift package
         run: swift test --package-path apps/Portnado
+
+  swift-gate:
+    name: Swift
+    if: always()
+    needs: [changes, swift]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require relevant Swift checks
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          SWIFT_RESULT: ${{ needs.swift.result }}
+          SWIFT_REQUIRED: ${{ needs.changes.outputs.swift }}
+        run: |
+          if [ "$CHANGES_RESULT" != "success" ]; then
+            echo "Change detection failed." >&2
+            exit 1
+          fi
+          if [ "$SWIFT_REQUIRED" = "true" ] && [ "$SWIFT_RESULT" != "success" ]; then
+            echo "Swift checks did not complete successfully." >&2
+            exit 1
+          fi
