@@ -3,22 +3,6 @@ name: CI
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    paths:
-      - ".github/workflows/**"
-      - "AGENTS.md"
-      - "Dockerfile"
-      - "Makefile"
-      - "README.md"
-      - "configs/**"
-      - "docker-compose.yml"
-      - "cmd/**"
-      - "internal/**"
-      - "pkg/**"
-      - "scripts/**"
-      - "packaging/**"
-      - "docs/**"
-      - "go.mod"
-      - "go.sum"
   workflow_dispatch:
 
 permissions:
@@ -29,11 +13,77 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect Go scope
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.scope.outputs.go }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: scope
+        name: Check changed files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+            '.github/workflows/ci.yml' \
+            '.github/workflows/release.yml' \
+            'AGENTS.md' \
+            'Dockerfile' \
+            'Makefile' \
+            'README.md' \
+            'configs/**' \
+            'docker-compose.yml' \
+            'cmd/**' \
+            'internal/**' \
+            'pkg/**' \
+            'scripts/**' \
+            'packaging/**' \
+            'docs/**' \
+            'go.mod' \
+            'go.sum'; then
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
   go:
-    name: Go and docs
+    name: Go and docs checks
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - name: Run Dockerized Phase 7 checks
         run: docker compose run --rm phase7-hardening-checks
+
+  go-gate:
+    name: Go and docs
+    if: always()
+    needs: [changes, go]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require relevant Go checks
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          GO_RESULT: ${{ needs.go.result }}
+          GO_REQUIRED: ${{ needs.changes.outputs.go }}
+        run: |
+          if [ "$CHANGES_RESULT" != "success" ]; then
+            echo "Change detection failed." >&2
+            exit 1
+          fi
+          if [ "$GO_REQUIRED" = "true" ] && [ "$GO_RESULT" != "success" ]; then
+            echo "Go checks did not complete successfully." >&2
+            exit 1
+          fi
