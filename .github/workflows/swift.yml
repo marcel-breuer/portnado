@@ -1,0 +1,28 @@
+name: Swift
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - ".github/workflows/swift.yml"
+      - "apps/Portnado/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: swift-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swift:
+    name: Swift
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build Swift package
+        run: swift build --package-path apps/Portnado
+      - name: Test Swift package
+        run: swift test --package-path apps/Portnado

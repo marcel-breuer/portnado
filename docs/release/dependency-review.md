@@ -16,7 +16,7 @@ go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
 - `go mod verify`: all modules verified.
 - `govulncheck`: no vulnerabilities found.
-- CI runs govulncheck on every push and pull request.
+- The scheduled Security workflow runs govulncheck weekly and can also be started manually; PR CI keeps the faster build and test checks.
 - Homebrew Cask style and strict audit pass when the Cask is copied into a
   temporary local tap.
 
