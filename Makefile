@@ -94,7 +94,7 @@ go-mod-verify:
 	$(GO) mod verify
 
 govulncheck:
-	$(GO) run golang.org/x/vuln/cmd/govulncheck@latest ./...
+	$(GO) run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
 
 go-build:
 	$(GO) build ./cmd/portnado
