@@ -25,6 +25,12 @@ Portnado is a macOS Apple Silicon developer tool. The MVP is limited to macOS 14
 - Do not delete, rewrite, or revert user work without explicit approval.
 - Use Conventional Commits for commits.
 
+## UI Work
+
+- For new UI views, UI redesigns, and focused UI reviews, use the project skill in `.agents/skills/unslop/` (`$unslop`) before changing or reviewing the interface. Follow its audit-first approach and fix only issues supported by the audit; preserve existing behavior and avoid an unrequested redesign.
+- Keep Portnado's product identity, existing SwiftUI patterns, and reusable components. The upstream skill includes web-specific guidance; apply its visual principles to native SwiftUI rather than introducing web technologies or copying web-only implementation steps.
+- For UI changes, check the supported macOS layouts, accessibility and contrast, and visual consistency. Run relevant existing UI checks when available and include before/after evidence in the change review when the rendered interface changes.
+
 ## Testing
 
 - Target at least 80% line coverage for testable core logic.
