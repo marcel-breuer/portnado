@@ -8,56 +8,61 @@ struct PortnadoApp: App {
 
     var body: some Scene {
         MenuBarExtra("Portnado", systemImage: model.systemImage) {
-            VStack(alignment: .leading, spacing: 12) {
-                BrandHeader(model: model)
-                StatusPanel(model: model)
-                Divider()
-
-                if !model.suggestions.isEmpty {
-                    SectionHeader(title: "Suggested Routes", systemImage: "sparkles")
-                    ForEach(model.suggestions) { suggestion in
-                        RouteSuggestionRow(suggestion: suggestion, model: model)
-                    }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    BrandHeader(model: model)
+                    StatusPanel(model: model)
                     Divider()
-                }
 
-                if !model.routes.isEmpty {
-                    SectionHeader(title: "Confirmed Routes", systemImage: "checkmark.seal")
-                    ForEach(model.routes) { route in
-                        ConfirmedRouteRow(route: route, model: model)
+                    if !model.suggestions.isEmpty {
+                        SectionHeader(title: "Suggested Routes", systemImage: "arrow.triangle.branch")
+                        ForEach(model.suggestions) { suggestion in
+                            RouteSuggestionRow(suggestion: suggestion, model: model)
+                        }
+                        Divider()
                     }
+
+                    if !model.routes.isEmpty {
+                        SectionHeader(title: "Confirmed Routes", systemImage: "checkmark.seal")
+                        ForEach(model.routes) { route in
+                            ConfirmedRouteRow(route: route, model: model)
+                        }
+                        Divider()
+                    }
+
+                    Toggle("Show inactive routes", isOn: $model.showInactiveRoutes)
+                        .tint(BrandPalette.primary)
+                    Toggle("Copy addresses with http://", isOn: $model.copyWithScheme)
+                        .tint(BrandPalette.primary)
                     Divider()
-                }
 
-                Toggle("Show inactive routes", isOn: $model.showInactiveRoutes)
-                    .tint(BrandPalette.primary)
-                Toggle("Copy addresses with http://", isOn: $model.copyWithScheme)
-                    .tint(BrandPalette.primary)
-                Divider()
+                    HStack(spacing: 8) {
+                        Button {
+                            model.refresh()
+                        } label: {
+                            Label("Refresh", systemImage: "arrow.clockwise")
+                        }
+                        .keyboardShortcut("r")
+                        .tint(BrandPalette.primary)
 
-                HStack(spacing: 8) {
-                    Button {
-                        model.refresh()
-                    } label: {
-                        Label("Refresh", systemImage: "arrow.clockwise")
-                    }
-                    .keyboardShortcut("r")
-                    .tint(BrandPalette.primary)
-
-                    Button {
-                        NSApplication.shared.terminate(nil)
-                    } label: {
-                        Label("Quit", systemImage: "power")
+                        Button {
+                            NSApplication.shared.terminate(nil)
+                        } label: {
+                            Label("Quit", systemImage: "power")
+                        }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
             }
-            .frame(minWidth: 330, alignment: .leading)
-            .padding(12)
+            .frame(minWidth: 340, idealWidth: 360, maxWidth: 400)
+            .frame(maxHeight: 620)
+            .background(GlassPanelSurface())
             .onAppear {
                 model.refresh()
             }
         }
-        .menuBarExtraStyle(.menu)
+        .menuBarExtraStyle(.window)
     }
 }
 
@@ -88,13 +93,7 @@ private struct BrandHeader: View {
         HStack(spacing: 10) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [BrandPalette.primaryDeep, BrandPalette.indigo],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(BrandPalette.primary)
                 Image(systemName: model.systemImage)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
@@ -115,7 +114,6 @@ private struct BrandHeader: View {
 
 private struct StatusPanel: View {
     @ObservedObject var model: MenuBarModel
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -135,18 +133,7 @@ private struct StatusPanel: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(statusBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(BrandPalette.primary.opacity(0.18), lineWidth: 1)
-            )
-        )
-    }
-
-    private var statusBackground: Color {
-        colorScheme == .dark ? BrandPalette.primaryDeep.opacity(0.18) : BrandPalette.purple100.opacity(0.65)
+        .glassSurface(cornerRadius: 10)
     }
 }
 
@@ -157,7 +144,7 @@ private struct SectionHeader: View {
     var body: some View {
         Label(title, systemImage: systemImage)
             .font(.caption.weight(.semibold))
-            .foregroundStyle(BrandPalette.primaryDeep)
+            .foregroundStyle(BrandPalette.primary)
     }
 }
 
@@ -231,33 +218,66 @@ private extension View {
     func routeSurface(accent: Color) -> some View {
         modifier(RouteSurfaceModifier(accent: accent))
     }
+
+    func glassSurface(cornerRadius: CGFloat) -> some View {
+        modifier(GlassSurfaceModifier(cornerRadius: cornerRadius))
+    }
+}
+
+private struct GlassPanelSurface: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        shape
+            .fill(
+                reduceTransparency
+                    ? AnyShapeStyle(Color(nsColor: .windowBackgroundColor))
+                    : AnyShapeStyle(.ultraThinMaterial)
+            )
+            .overlay {
+                shape.strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.16 : 0.10), lineWidth: 1)
+            }
+            .ignoresSafeArea()
+    }
+}
+
+private struct GlassSurfaceModifier: ViewModifier {
+    let cornerRadius: CGFloat
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        content
+            .background {
+                shape.fill(
+                    reduceTransparency
+                        ? AnyShapeStyle(Color(nsColor: .controlBackgroundColor))
+                        : AnyShapeStyle(.regularMaterial)
+                )
+            }
+            .overlay {
+                shape.strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.16 : 0.10), lineWidth: 1)
+            }
+    }
 }
 
 private struct RouteSurfaceModifier: ViewModifier {
     let accent: Color
-    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
         content
             .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                HStack(spacing: 0) {
-                    RoundedRectangle(cornerRadius: 3, style: .continuous)
-                        .fill(accent)
-                        .frame(width: 3)
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(surfaceColor)
-                }
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(BrandPalette.primary.opacity(colorScheme == .dark ? 0.22 : 0.10), lineWidth: 1)
-            )
-    }
-
-    private var surfaceColor: Color {
-        colorScheme == .dark ? BrandPalette.slate950.opacity(0.55) : Color.white.opacity(0.72)
+            .glassSurface(cornerRadius: 8)
+            .overlay(alignment: .leading) {
+                Capsule(style: .continuous)
+                    .fill(accent)
+                    .frame(width: 3)
+                    .padding(.vertical, 8)
+            }
     }
 }
 
